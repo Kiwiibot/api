@@ -25,7 +25,7 @@ struct Frame {
 
 static FRAMES: LazyLock<Vec<Frame>> = LazyLock::new(|| {
     serde_json::from_str(
-        fs::read_to_string("/workspace/resources/images/illegal/frames.json")
+        fs::read_to_string("/data/resources/images/illegal/frames.json")
             .expect("File")
             .as_str(),
     )

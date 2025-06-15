@@ -1,7 +1,0 @@
-/workspace/kiwii_api/target/debug/deps/libglob-6785168faa19319d.rmeta: /usr/local/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/glob-0.3.2/src/lib.rs
-
-/workspace/kiwii_api/target/debug/deps/libglob-6785168faa19319d.rlib: /usr/local/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/glob-0.3.2/src/lib.rs
-
-/workspace/kiwii_api/target/debug/deps/glob-6785168faa19319d.d: /usr/local/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/glob-0.3.2/src/lib.rs
-
-/usr/local/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/glob-0.3.2/src/lib.rs:

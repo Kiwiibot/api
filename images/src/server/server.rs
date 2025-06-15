@@ -254,7 +254,7 @@ pub async fn run_server(host: Option<IpAddr>, port: Option<u16>) {
                 .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
         );
 
-    let host = host.unwrap_or(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+    let host = host.unwrap_or(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
     let port = port.unwrap_or(5555);
     let addr = SocketAddr::new(host, port);
     let listener = TcpListener::bind(addr).await.unwrap();
