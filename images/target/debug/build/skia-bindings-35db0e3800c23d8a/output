@@ -1,0 +1,18 @@
+cargo:rerun-if-env-changed=DOCS_RS
+cargo:rerun-if-env-changed=SKIA_DEBUG
+cargo:rerun-if-env-changed=SKIA_USE_SYSTEM_LIBRARIES
+cargo:rerun-if-env-changed=SKIA_USE_SYSTEM_LIBRARIES
+cargo:rerun-if-env-changed=SKIA_SOURCE_DIR
+cargo:rerun-if-env-changed=FORCE_SKIA_BUILD
+cargo:rerun-if-env-changed=FORCE_SKIA_BINARIES_DOWNLOAD
+TRYING TO DOWNLOAD AND INSTALL SKIA BINARIES: 0.86.1/32aa5672b7c0a651ab5e-x86_64-unknown-linux-gnu-pdf
+cargo:rerun-if-env-changed=SKIA_BINARIES_URL
+  FROM: https://github.com/rust-skia/skia-binaries/releases/download/0.86.1/skia-binaries-32aa5672b7c0a651ab5e-x86_64-unknown-linux-gnu-pdf.tar.gz
+UNPACKING ARCHIVE INTO: /workspace/kiwii_api/target/debug/build/skia-bindings-35db0e3800c23d8a/out/skia
+DOWNLOAD AND INSTALL SUCCEEDED
+cargo:rustc-link-search=/workspace/kiwii_api/target/debug/build/skia-bindings-35db0e3800c23d8a/out/skia
+cargo:rustc-link-lib=static=skia
+cargo:rustc-link-lib=static=skia-bindings
+cargo:rustc-link-lib=stdc++
+cargo:rustc-link-lib=fontconfig
+cargo:rustc-link-lib=freetype

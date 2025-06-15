@@ -1,0 +1,28 @@
+[package]
+name = "kiwii_api"
+edition = "2024"
+version = "0.0.1"
+authors = ["Lexedia (contact@lexedia.moe)"]
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+chrono = { version = "0.4.41", features = ["serde"] }
+gifski = { version = "1.33.0", default-features = false }
+inventory = "0.3.20"
+regex = "1.11.1"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+skia-safe = { version = "0.86.1", features = ["textlayout"] }
+tracing = "0.1.41"
+image_derive = { version = "0.1.0", path = "../image_derive" }
+rand = "0.9.1"
+axum = { version = "0.8.4", features = ["multipart"] }
+base64 = "0.22.1"
+base64-serde = "0.8.0"
+reqwest = "0.12.20"
+tokio = { version = "1.45.1", features = ["full"] }
+infer = "0.19.0"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tower-http = { version = "0.6.6", features = ["trace"] }
+md5 = "0.7.0"

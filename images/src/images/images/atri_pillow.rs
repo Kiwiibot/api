@@ -1,0 +1,65 @@
+use image_derive::ImageOptions;
+use rand::seq::IndexedRandom;
+use skia_safe::{Color4f, IRect};
+
+use crate::{
+    core::error::Error,
+    register_image, text_params,
+    utils::{
+        builder::InputImage,
+        canvas::CanvasExtensions,
+        encoder::encode_png,
+        image::ImageExt,
+        tools::{load_image, new_paint, new_surface},
+    },
+};
+
+#[derive(ImageOptions)]
+struct Mode {
+    #[option(choices = ["yes", "no"])]
+    mode: Option<String>,
+}
+
+fn atri_pillow(_: Vec<InputImage>, texts: Vec<String>, options: Mode) -> Result<Vec<u8>, Error> {
+    let mode = options.mode.as_deref().unwrap_or_else(|| {
+        let mut rng = rand::rng();
+        ["yes", "no"].choose(&mut rng).unwrap()
+    });
+    let text = &texts[0];
+
+    let text_color = match mode {
+        "yes" => Color4f::new(1.0, 0.0, 0.0, 0.3),
+        _ => Color4f::new(0.0, 0.3, 1.0, 0.3),
+    };
+    let frame = load_image(format!("atri_pillow/{mode}.png"))?;
+
+    let mut surface = new_surface((300, 150));
+    let canvas = surface.canvas();
+    canvas.draw_text_area_auto_font_size(
+        IRect::from_ltrb(20, 20, 280, 130),
+        text,
+        30.0,
+        120.0,
+        text_params!(
+            font_families = &["FZShaoEr-M11S"],
+            paint = new_paint(text_color)
+        ),
+    )?;
+    let text_image = surface.image_snapshot();
+    let text_image = text_image.rotate(4.0);
+
+    let mut surface = frame.to_surface();
+    let canvas = surface.canvas();
+    canvas.draw_image(&text_image, (302, 288), None);
+    let border = load_image("atri_pillow/border.png")?;
+    canvas.draw_image(&border, (0, 416), None);
+    encode_png(surface.image_snapshot())
+}
+
+register_image!(
+    "atri_pillow",
+    atri_pillow,
+    min_texts = 1,
+    max_texts = 1,
+    default_texts = &["Atri"]
+);
