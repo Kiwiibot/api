@@ -218,7 +218,7 @@ pub fn gif(image: Vec<u8>) -> Result<Vec<u8>, Error> {
     let dur = codec.get_avg_duration()?;
 
     make_gif_or_combined_gif(
-        vec![input_image(image)?],
+        vec![input_image(image.clone())?],
         |_: usize, imgs: Vec<Image>| Ok(imgs[0].clone()),
         GifInfo {
             duration: dur,
