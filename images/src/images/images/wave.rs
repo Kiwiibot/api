@@ -8,31 +8,27 @@ use crate::{
     register_image,
     utils::{
         builder::InputImage,
-        encoder::{make_gif_or_combined_gif, FrameAlign, GifInfo},
+        encoder::{FrameAlign, GifInfo, make_gif_or_combined_gif},
         tools::{load_sksl, new_surface},
     },
 };
 
-fn funny_mirror(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result<Vec<u8>, Error> {
-    let effect = load_sksl("funny_mirror.glsl")?;
+fn wave(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result<Vec<u8>, Error> {
+    let effect = load_sksl("wave.glsl")?;
 
     let func = |i: usize, images: Vec<Image>| {
         let img = &images[0];
 
-        let strength = 0.5 * (f32::consts::PI / 20.0 * i as f32).sin();
-        let x = img.width() as f32 * 0.5;
-        let y = img.height() as f32 * 0.5;
-        let radius = (x * x + y * y).sqrt();
+        let time = i as f32 * 0.3;
+        let amplitude: f32 = 15.0; // pixels
+        let frequency: f32 = 0.05; // radians per pixel
 
         let mut values = Vec::new();
         for uniform in effect.uniforms() {
             match uniform.name() {
-                "center" => {
-                    values.extend(x.to_le_bytes());
-                    values.extend(y.to_le_bytes());
-                }
-                "strength" => values.extend(strength.to_le_bytes()),
-                "radius" => values.extend(radius.to_le_bytes()),
+                "time" => values.extend(time.to_le_bytes()),
+                "amplitude" => values.extend(amplitude.to_le_bytes()),
+                "frequency" => values.extend(frequency.to_le_bytes()),
                 _ => {}
             }
         }
@@ -64,4 +60,4 @@ fn funny_mirror(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result
     )
 }
 
-register_image!("funny_mirror", funny_mirror, min_images = 1, max_images = 1);
+register_image!("wave", wave, min_images = 1, max_images = 1);

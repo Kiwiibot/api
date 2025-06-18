@@ -1,6 +1,17 @@
 use skia_safe::{IRect, Image};
 
-use crate::{core::{error::Error, types}, utils::{builder::InputImage, decoder::CodecExtensions, encoder::{encode_png, make_png_or_gif, GifEncoder}, image::{Fit, ImageExt}, tools::new_surface}};
+use crate::{
+    core::{error::Error, types},
+    utils::{
+        builder::InputImage,
+        decoder::CodecExtensions,
+        encoder::{
+            FrameAlign, GifEncoder, GifInfo, encode_png, make_gif_or_combined_gif, make_png_or_gif,
+        },
+        image::{Fit, ImageExt},
+        tools::new_surface,
+    },
+};
 
 use crate::tools::images::inspect::decode_image;
 
@@ -199,6 +210,22 @@ pub fn gif_reverse(image: Vec<u8>) -> Result<Vec<u8>, Error> {
         encoder.add_frame(frames[count - i - 1].clone(), duration)?;
     }
     Ok(encoder.finish()?)
+}
+
+pub fn gif(image: Vec<u8>) -> Result<Vec<u8>, Error> {
+    let mut codec = decode_image(image)?;
+    let count = codec.get_frame_count();
+    let dur = codec.get_avg_duration();
+
+    make_gif_or_combined_gif(
+        vec![input_image(image)?],
+        |_: usize, imgs: Image| Ok(imgs[0]),
+        GifInfo {
+            duration: dur,
+            frame_num: count,
+        },
+        FrameAlign::NoExtend,
+    )
 }
 
 pub fn gif_change_duration(image: Vec<u8>, duration: f32) -> Result<Vec<u8>, Error> {

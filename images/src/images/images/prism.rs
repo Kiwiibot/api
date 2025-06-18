@@ -1,5 +1,4 @@
 use core::f32;
-
 use skia_safe::{Data, Image, Paint, SamplingOptions};
 
 use crate::{
@@ -8,21 +7,25 @@ use crate::{
     register_image,
     utils::{
         builder::InputImage,
-        encoder::{make_gif_or_combined_gif, FrameAlign, GifInfo},
+        encoder::{FrameAlign, GifInfo, make_gif_or_combined_gif},
         tools::{load_sksl, new_surface},
     },
 };
 
-fn funny_mirror(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result<Vec<u8>, Error> {
-    let effect = load_sksl("funny_mirror.glsl")?;
+fn prism(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result<Vec<u8>, Error> {
+    let effect = load_sksl("prism.glsl")?;
 
+    let frame_num = 32;
     let func = |i: usize, images: Vec<Image>| {
         let img = &images[0];
-
-        let strength = 0.5 * (f32::consts::PI / 20.0 * i as f32).sin();
         let x = img.width() as f32 * 0.5;
         let y = img.height() as f32 * 0.5;
-        let radius = (x * x + y * y).sqrt();
+        let radius = (x * x + y * y).sqrt() * 0.8;
+
+        let t = i as f32 / frame_num as f32;
+        let anim = (std::f32::consts::PI * 2.0 * t).sin() * 0.5 + 0.5;
+        let zoom = 0.7 + 0.3 * anim;
+        let strength = 18.0 * (1.0 - anim);
 
         let mut values = Vec::new();
         for uniform in effect.uniforms() {
@@ -31,8 +34,9 @@ fn funny_mirror(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result
                     values.extend(x.to_le_bytes());
                     values.extend(y.to_le_bytes());
                 }
-                "strength" => values.extend(strength.to_le_bytes()),
                 "radius" => values.extend(radius.to_le_bytes()),
+                "strength" => values.extend(strength.to_le_bytes()),
+                "zoom" => values.extend(zoom.to_le_bytes()),
                 _ => {}
             }
         }
@@ -57,11 +61,11 @@ fn funny_mirror(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result
         images,
         func,
         GifInfo {
-            frame_num: 21,
+            frame_num: frame_num,
             duration: 0.05,
         },
         FrameAlign::ExtendLoop,
     )
 }
 
-register_image!("funny_mirror", funny_mirror, min_images = 1, max_images = 1);
+register_image!("prism", prism, min_images = 1, max_images = 1);

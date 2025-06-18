@@ -1,12 +1,17 @@
-use std::fs::read;
+use std::fs::{read, read_to_string};
 
 use chrono::{DateTime, Local, TimeZone};
 use regex::Regex;
 use skia_safe::{
-    scalar, surfaces, textlayout::{Decoration, TextDecoration, TextDecorationMode}, Color, Color4f, Data, FilterMode, IRect, ISize, Image, MipmapMode, Paint, PaintJoin, PaintStyle, SamplingOptions, Surface
+    Color, Color4f, Data, FilterMode, IRect, ISize, Image, MipmapMode, Paint, PaintJoin,
+    PaintStyle, RuntimeEffect, SamplingOptions, Surface, scalar, surfaces,
+    textlayout::{Decoration, TextDecoration, TextDecorationMode},
 };
 
-use crate::{core::error::Error, utils::config::IMAGES_DIR};
+use crate::{
+    core::error::Error,
+    utils::config::{IMAGES_DIR, SKSL_DIR},
+};
 
 pub fn new_surface(size: impl Into<ISize>) -> Surface {
     surfaces::raster_n32_premul(size).unwrap()
@@ -212,12 +217,25 @@ pub fn load_image(path: impl Into<String>) -> Result<Image, Error> {
     let path = path.into();
     let image_path = IMAGES_DIR.join(&path);
     if !(image_path.exists() && image_path.is_file()) {
-        return Err(Error::ImageAssetMissing(image_path.to_str().unwrap().to_string()));
+        return Err(Error::ImageAssetMissing(
+            image_path.to_str().unwrap().to_string(),
+        ));
     }
 
     let data = Data::new_copy(&read(&image_path).unwrap());
 
     Image::from_encoded(data).ok_or(Error::ImageDecodeError(path))
+}
+
+pub fn load_sksl(path: impl Into<String>) -> Result<RuntimeEffect, Error> {
+    let path = path.into();
+    let shader_path = SKSL_DIR.join(&path);
+    if !(shader_path.exists() && shader_path.is_file()) {
+        return Err(Error::Generic(format!("Couldn't load SKSL shader: {path}")));
+    }
+
+    RuntimeEffect::make_for_shader(read_to_string(&shader_path).unwrap(), None)
+        .map_err(|e| Error::Generic(e.to_string()))
 }
 
 pub fn new_decoration(text_decoration: TextDecoration, color: Color) -> Decoration {

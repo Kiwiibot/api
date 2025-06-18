@@ -207,7 +207,25 @@ pub(crate) async fn gif_reverse(
         Err(err) => return handle_server_error(err).into_response(),
     };
 
-    let result = spawn_blocking(move || tools::images::modification::gif_reverse(img.data)).await.unwrap();
+    let result = spawn_blocking(move || tools::images::modification::gif_reverse(img.data))
+        .await
+        .unwrap();
+
+    handle_image(result)
+}
+
+pub(crate) async fn gif(
+    param: Option<Path<String>>,
+    Json(payload): Json<ImageRequest>,
+) -> Response {
+    let img = match preamble_tool(payload.images, param).await {
+        Ok(img) => img,
+        Err(err) => return handle_server_error(err).into_response(),
+    };
+
+    let result = spawn_blocking(move || tools::images::modification::gif(img.data))
+        .await
+        .unwrap();
 
     handle_image(result)
 }

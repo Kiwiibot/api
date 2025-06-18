@@ -13,26 +13,21 @@ use crate::{
     },
 };
 
-fn funny_mirror(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result<Vec<u8>, Error> {
-    let effect = load_sksl("funny_mirror.glsl")?;
+fn pixelate(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result<Vec<u8>, Error> {
+    let effect = load_sksl("pixelate.glsl")?;
 
     let func = |i: usize, images: Vec<Image>| {
         let img = &images[0];
-
-        let strength = 0.5 * (f32::consts::PI / 20.0 * i as f32).sin();
-        let x = img.width() as f32 * 0.5;
-        let y = img.height() as f32 * 0.5;
-        let radius = (x * x + y * y).sqrt();
+        let base = 4.0 + ((i as f32) * std::f32::consts::PI / 10.0).sin().abs() * 28.0;
+        let pixel_size = [base, base];
 
         let mut values = Vec::new();
         for uniform in effect.uniforms() {
             match uniform.name() {
-                "center" => {
-                    values.extend(x.to_le_bytes());
-                    values.extend(y.to_le_bytes());
+                "pixel_size" => {
+                    values.extend(pixel_size[0].to_le_bytes());
+                    values.extend(pixel_size[1].to_le_bytes());
                 }
-                "strength" => values.extend(strength.to_le_bytes()),
-                "radius" => values.extend(radius.to_le_bytes()),
                 _ => {}
             }
         }
@@ -57,11 +52,11 @@ fn funny_mirror(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result
         images,
         func,
         GifInfo {
-            frame_num: 21,
-            duration: 0.05,
+            frame_num: 16,
+            duration: 0.07,
         },
         FrameAlign::ExtendLoop,
     )
 }
 
-register_image!("funny_mirror", funny_mirror, min_images = 1, max_images = 1);
+register_image!("pixelate", pixelate, min_images = 1, max_images = 1);

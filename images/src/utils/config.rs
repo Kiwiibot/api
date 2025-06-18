@@ -3,8 +3,12 @@ use std::sync::LazyLock;
 
 use serde::Deserialize;
 
-pub const IMAGES_DIR: LazyLock<PathBuf> = LazyLock::new(|| PathBuf::from("/data/resources/images"));
-pub const FONTS_DIR: LazyLock<PathBuf> = LazyLock::new(|| PathBuf::from("/data/resources/fonts"));
+pub const IMAGES_DIR: LazyLock<PathBuf> =
+    LazyLock::new(|| PathBuf::from("/data/resources/images"));
+pub const FONTS_DIR: LazyLock<PathBuf> =
+    LazyLock::new(|| PathBuf::from("/data/resources/fonts"));
+pub const SKSL_DIR: LazyLock<PathBuf> =
+    LazyLock::new(|| PathBuf::from("/data/glsl"));
 
 pub static FONT_CONFIG: LazyLock<FontConfig> = LazyLock::new(|| FontConfig::default());
 

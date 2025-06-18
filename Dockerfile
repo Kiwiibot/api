@@ -17,7 +17,7 @@ WORKDIR /app
 COPY --from=builder /tmp/target/release/kiwii_api /app/kiwii_api
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl fontconfig \
+  && apt-get install -y --no-install-recommends ca-certificates openssl fontconfig \
   && fc-cache -fv \
   && rm -rf /var/lib/apt/lists/*
 

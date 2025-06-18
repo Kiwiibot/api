@@ -25,7 +25,7 @@ use tracing::{Level, info};
 use crate::{
     core::{error::Error, registry::get_image, types::OptionValue},
     server::tools::{
-        ImageRequest, gif_reverse, gif_split, handle_image, handle_images, handle_inspect,
+        ImageRequest, gif, gif_reverse, gif_split, handle_image, handle_images, handle_inspect,
         process_images,
     },
 };
@@ -116,7 +116,7 @@ pub(crate) fn handle_server_error(error: ServerError) -> ErrorResponse {
         ServerError::RequestError(err) => ErrorResponse {
             code: 410,
             message,
-            data: json!({ "error": format!("{err}") }),
+            data: json!({ "error": format!("{:?}", err) }),
         },
         ServerError::IOError(err) => ErrorResponse {
             code: 420,
@@ -247,11 +247,14 @@ pub async fn run_server(host: Option<IpAddr>, port: Option<u16>) {
         .route("/tools/gif_split/{id}", post(gif_split))
         .route("/tools/gif_reverse", post(gif_reverse))
         .route("/tools/gif_reverse/{id}", post(gif_reverse))
+        .route("/tools/gif", post(gif))
+        .route("/tools/gif/{id}", post(gif))
         .route("/images/{image_id}", get(handle_images))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
-                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO))
+                .on_request(trace::DefaultOnRequest::new().level(Level::INFO)),
         );
 
     let host = host.unwrap_or(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
