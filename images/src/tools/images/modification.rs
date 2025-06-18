@@ -213,7 +213,7 @@ pub fn gif_reverse(image: Vec<u8>) -> Result<Vec<u8>, Error> {
 }
 
 pub fn gif(image: Vec<u8>) -> Result<Vec<u8>, Error> {
-    let mut codec = decode_image(image)?;
+    let mut codec = decode_image(image.clone())?;
     let count = codec.get_frame_count();
     let dur = codec.get_avg_duration()?;
 
