@@ -1,6 +1,9 @@
+use std::io::Write;
+use std::process::{Command, Stdio};
 use std::thread::{self, JoinHandle};
 
 use skia_safe::{AlphaType, ColorType, EncodedImageFormat, Image, ImageInfo, image::CachingHint};
+use tracing::info;
 
 use crate::core::error::Error;
 use crate::utils::{builder::InputImage, decoder::CodecExtensions};
@@ -97,6 +100,153 @@ impl GifEncoder {
         }
 
         Err(Error::ImageEncodeError("no gifski writer thread".into()))
+    }
+}
+
+fn image_to_rgba(image: &Image) -> Vec<u8> {
+    let image_info = ImageInfo::new(
+        image.dimensions(),
+        ColorType::RGBA8888,
+        AlphaType::Unpremul,
+        None,
+    );
+    let row_bytes = image_info.min_row_bytes();
+    let data_size = image_info.compute_min_byte_size();
+    let mut data = vec![0u8; data_size];
+    image.read_pixels(
+        &image_info,
+        &mut data,
+        row_bytes,
+        (0, 0),
+        CachingHint::Allow,
+    );
+    data
+}
+
+pub struct VideoEncoder {
+    width: Option<u32>,
+    height: Option<u32>,
+    fps: f32,
+    child: Option<std::process::Child>,
+    stdin: Option<std::process::ChildStdin>,
+    stdout_handle: Option<JoinHandle<Result<Vec<u8>, Error>>>,
+    frame_count: usize,
+}
+
+impl VideoEncoder {
+    pub fn new(fps: f32) -> Self {
+        Self {
+            width: None,
+            height: None,
+            fps,
+            child: None,
+            stdin: None,
+            stdout_handle: None,
+            frame_count: 0,
+        }
+    }
+
+    fn ensure_started(&mut self, width: u32, height: u32) -> Result<(), Error> {
+        if self.child.is_some() {
+            return Ok(());
+        }
+
+        self.width = Some(width);
+        self.height = Some(height);
+
+        let mut child = Command::new("ffmpeg")
+            .args([
+                "-f", "rawvideo",
+                "-pix_fmt", "rgba",
+                "-s", &format!("{width}x{height}"),
+                "-r", &format!("{}", self.fps),
+                "-i", "pipe:0",
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",
+                "-preset", "fast",
+                "-crf", "23",
+                "-movflags", "frag_keyframe+empty_moov",
+                "-f", "mp4",
+                "-y",
+                "pipe:1",
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| Error::ImageEncodeError(format!("Failed to spawn ffmpeg: {e}")))?;
+
+        self.stdin = child.stdin.take();
+
+        // Collect stdout on a background thread to prevent pipe deadlock
+        let mut stdout = child
+            .stdout
+            .take()
+            .ok_or(Error::ImageEncodeError("Failed to get ffmpeg stdout".into()))?;
+        self.stdout_handle = Some(thread::spawn(move || {
+            use std::io::Read;
+            let mut buf = Vec::new();
+            stdout
+                .read_to_end(&mut buf)
+                .map_err(|e| Error::ImageEncodeError(format!("Failed to read ffmpeg stdout: {e}")))?;
+            Ok(buf)
+        }));
+
+        self.child = Some(child);
+        info!("VideoEncoder: started ffmpeg at {width}x{height} @ {} fps", self.fps);
+        Ok(())
+    }
+
+    pub fn add_frame(&mut self, image: Image) -> Result<(), Error> {
+        let w = image.width() as u32;
+        let h = image.height() as u32;
+        self.ensure_started(w, h)?;
+
+        let data = image_to_rgba(&image);
+        if let Some(stdin) = self.stdin.as_mut() {
+            stdin.write_all(&data).map_err(|e| {
+                Error::ImageEncodeError(format!("Failed to write frame to ffmpeg: {e}"))
+            })?;
+        }
+        self.frame_count += 1;
+        Ok(())
+    }
+
+    pub fn finish(&mut self) -> Result<Vec<u8>, Error> {
+        info!("VideoEncoder: finishing {} frames", self.frame_count);
+
+        // Close stdin to signal end of input
+        drop(self.stdin.take());
+
+        // Collect stdout
+        let output = self
+            .stdout_handle
+            .take()
+            .ok_or(Error::ImageEncodeError("No ffmpeg process".into()))?
+            .join()
+            .map_err(|_| Error::ImageEncodeError("stdout reader thread panicked".into()))??;
+
+        // Wait for the process to exit
+        if let Some(mut child) = self.child.take() {
+            let status = child.wait().map_err(|e| {
+                Error::ImageEncodeError(format!("Failed to wait for ffmpeg: {e}"))
+            })?;
+
+            if !status.success() {
+                let mut stderr_buf = Vec::new();
+                if let Some(mut stderr) = child.stderr.take() {
+                    use std::io::Read;
+                    let _ = stderr.read_to_end(&mut stderr_buf);
+                }
+                let stderr = String::from_utf8_lossy(&stderr_buf);
+                return Err(Error::ImageEncodeError(format!(
+                    "ffmpeg exited with {status}: {stderr}"
+                )));
+            }
+        }
+
+        info!("VideoEncoder: encoded {} bytes of MP4", output.len());
+        Ok(output)
     }
 }
 
