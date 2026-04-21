@@ -1,4 +1,5 @@
-use std::fs::{read, read_to_string};
+use std::fs::read_to_string;
+use std::sync::LazyLock;
 
 use chrono::{DateTime, Local, TimeZone};
 use regex::Regex;
@@ -12,6 +13,8 @@ use crate::{
     core::error::Error,
     utils::config::{IMAGES_DIR, SKSL_DIR},
 };
+
+pub static GRID_PATTERN_IMAGE: LazyLock<Image> = LazyLock::new(grid_pattern_image);
 
 pub fn new_surface(size: impl Into<ISize>) -> Surface {
     surfaces::raster_n32_premul(size).unwrap()
@@ -222,7 +225,8 @@ pub fn load_image(path: impl Into<String>) -> Result<Image, Error> {
         ));
     }
 
-    let data = Data::new_copy(&read(&image_path).unwrap());
+    let data = Data::from_filename(&image_path)
+        .ok_or_else(|| Error::ImageDecodeError(format!("Failed to read image: {}", path)))?;
 
     Image::from_encoded(data).ok_or(Error::ImageDecodeError(path))
 }
@@ -247,7 +251,7 @@ pub fn new_decoration(text_decoration: TextDecoration, color: Color) -> Decorati
     decoration
 }
 
-pub fn grid_pattern_image() -> Image {
+fn grid_pattern_image() -> Image {
     let mut surface = new_surface(ISize::new(500, 500));
     let canvas = surface.canvas();
     canvas.clear(Color::WHITE);

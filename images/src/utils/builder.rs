@@ -8,7 +8,7 @@ use skia_safe::{Codec, Data, Image};
 
 use crate::core::types::{ImageData, Info, OptionValue, Params};
 use crate::core::{error::Error, types, types::ImageOption};
-use crate::utils::{decoder::CodecExtensions, encoder::encode_png, tools::grid_pattern_image};
+use crate::utils::{decoder::CodecExtensions, encoder::encode_png, tools::GRID_PATTERN_IMAGE};
 
 pub use image_derive::ImageOptions;
 
@@ -217,7 +217,11 @@ where
             }) = opt
             {
                 if choices.is_some() {
-                    Error::InvalidChoice(name.to_string(), choices.clone().unwrap(), value.unwrap().to_string())
+                    Error::InvalidChoice(
+                        name.to_string(),
+                        choices.clone().unwrap(),
+                        value.unwrap().to_string(),
+                    )
                 } else {
                     Error::DeserializeError(e)
                 }
@@ -235,7 +239,7 @@ where
     fn generate_preview(&self, options: HashMap<String, OptionValue>) -> Result<Vec<u8>, Error> {
         let mut images = Vec::new();
         if self.min_images > 0 {
-            let image = encode_png(grid_pattern_image())?;
+            let image = encode_png(GRID_PATTERN_IMAGE.clone())?;
             for i in 0..self.min_images {
                 let name = if self.min_images == 1 {
                     "{name}".to_string()

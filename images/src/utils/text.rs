@@ -4,7 +4,7 @@ use std::{
 };
 
 use skia_safe::{
-    Canvas, Color, Font, FontMgr, FontStyle, Paint, Point, scalar,
+    Canvas, Color, Data, Font, FontMgr, FontStyle, Paint, Point, Typeface, scalar,
     textlayout::{
         FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextAlign, TextDecoration,
         TextStyle, TypefaceFontProvider,
@@ -19,10 +19,16 @@ use crate::utils::{
 
 static FONT_MANAGER: LazyLock<Mutex<FontManager>> =
     LazyLock::new(|| Mutex::new(FontManager::init()));
-static FONT_CACHE: LazyLock<Mutex<HashMap<String, Font>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+static FONT_CACHE: LazyLock<Mutex<HashMap<String, Font>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 struct FontManager {
     font_collection: FontCollection,
+}
+
+fn typeface_from_file(font_mgr: &FontMgr, path: &std::path::Path) -> Option<Typeface> {
+    let data = Data::from_filename(path)?;
+    font_mgr.new_from_data(data.as_bytes(), None)
 }
 
 fn construct_font_provider() -> TypefaceFontProvider {
@@ -42,14 +48,15 @@ fn construct_font_provider() -> TypefaceFontProvider {
                         if !["ttf", "ttc", "otf"].contains(&ext) {
                             continue;
                         }
-                        if let Ok(bytes) = std::fs::read(path.clone()) {
-                            if let Some(typeface) = font_mgr.new_from_data(&bytes, None) {
-                                let font = Font::from_typeface(typeface.clone(), None);
-                                FONT_CACHE.lock().unwrap().insert(font.typeface().family_name(), font);
-                                font_provider.register_typeface(typeface, None);
-                            } else {
-                                warn!("Failed to create typeface from font file: {path:?}",);
-                            }
+                        if let Some(typeface) = typeface_from_file(&font_mgr, &path) {
+                            let font = Font::from_typeface(typeface.clone(), None);
+                            FONT_CACHE
+                                .lock()
+                                .unwrap()
+                                .insert(typeface.family_name(), font);
+                            font_provider.register_typeface(typeface, None);
+                        } else {
+                            warn!("Failed to create typeface from font file: {path:?}",);
                         }
                     }
                 }
@@ -100,7 +107,7 @@ impl Default for TextParams {
             paint: new_paint(Color::BLACK),
             stroke_paint: None,
             wrap_max_width: None,
-            wrap_should_chunk: false
+            wrap_should_chunk: false,
         }
     }
 }
@@ -212,10 +219,9 @@ fn wrap_text(font: Font, text: impl Into<String>, max_width: f32, should_chunk: 
     lines.join("\n")
 }
 
-fn get_font(family_name: String) -> Option<Font> {
+fn get_font(family_name: &str) -> Option<Font> {
     let map = FONT_CACHE.lock().unwrap();
-    println!("{:?}", map.keys());
-    map.get(&family_name).cloned()
+    map.get(family_name).cloned()
 }
 
 impl Text2Image {
@@ -240,17 +246,25 @@ impl Text2Image {
         style.set_foreground_paint(&text_params.paint);
         style.set_font_families(&font_families);
         builder.push_style(&style);
-        
-        if text_params.wrap_max_width.is_some() {
 
-            let font = get_font(font_families[0].clone()).unwrap();
-            
-            let new_text = wrap_text(font.clone(), &text, text_params.wrap_max_width.unwrap(), text_params.wrap_should_chunk);
-            builder.add_text(new_text.clone());
+        if let Some(max_width) = text_params.wrap_max_width {
+            let font = font_families.iter().find_map(|f| get_font(f));
+            if let Some(font) = font {
+                let new_text = wrap_text(
+                    font,
+                    &text,
+                    max_width,
+                    text_params.wrap_should_chunk,
+                );
+                builder.add_text(new_text);
+            } else {
+                warn!("No cached font found for wrapping, skipping text wrap");
+                builder.add_text(text.clone());
+            }
         } else {
             builder.add_text(text.clone());
         }
-        
+
         let mut paragraph = builder.build();
 
         paragraph.layout(scalar::INFINITY);

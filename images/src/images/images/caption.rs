@@ -29,7 +29,7 @@ fn caption(images: Vec<InputImage>, texts: Vec<String>, options: Font) -> Result
         Some("ubuntu") => Some("Ubuntu"),
         Some("helvetica") => Some("Helvetica Neue"),
         Some("arial") => Some("Arial"),
-        _ => None,
+        _ => Some("Impact"),
     };
 
     if let Some(f) = font {
@@ -42,8 +42,8 @@ fn caption(images: Vec<InputImage>, texts: Vec<String>, options: Font) -> Result
         let img_h = img.height();
 
         let text = &texts[0];
-        let font_size = 28.0f32;
-        let margin = 16.0f32;
+        let font_size = (img_w as f32 * 0.055).clamp(14.0, 80.0);
+        let margin = (img_w as f32 * 0.03).clamp(8.0, 40.0);
         let wrap_width = (img_w as f32 - margin * 2.0).max(10.0);
 
         let t = Text2Image::from_text(

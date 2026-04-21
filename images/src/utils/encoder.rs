@@ -64,10 +64,18 @@ impl GifEncoder {
             CachingHint::Allow,
         );
 
-        let pixels = data
-            .chunks_exact(4)
-            .map(|px| gifski::collector::RGBA8::new(px[0], px[1], px[2], px[3]))
-            .collect::<Vec<_>>();
+        // let pixels = data
+        //     .chunks_exact(4)
+        //     .map(|px| gifski::collector::RGBA8::new(px[0], px[1], px[2], px[3]))
+        //     .collect::<Vec<_>>();
+        let pixels: Vec<gifski::collector::RGBA8> = unsafe {
+            let len = data.len() / 4;
+            let cap = data.capacity() / 4;
+            let ptr = data.as_mut_ptr() as *mut gifski::collector::RGBA8;
+            std::mem::forget(data);
+            Vec::from_raw_parts(ptr, len, cap)
+        };
+
         let frame =
             gifski::collector::ImgVec::new(pixels, image.width() as usize, image.height() as usize);
         let collector = self.collector.as_mut().unwrap();

@@ -26,7 +26,7 @@ impl<'a> CodecExtensions for Codec<'a> {
                 .ok_or(Error::ImageDecodeError("Skia decode error".to_string()))?;
             total_duration += frame_info.duration as f32 / 1000.0;
         }
-        Ok(total_duration / count as f32)
+        Ok((total_duration / count as f32).max(0.02))
     }
 
     fn get_frame(&mut self, index: usize) -> Result<Image, Error> {

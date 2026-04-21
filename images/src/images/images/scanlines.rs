@@ -17,7 +17,8 @@ fn scanlines(images: Vec<InputImage>, _: Vec<String>, _: NoOptions) -> Result<Ve
 
     let func = |i: usize, images: Vec<Image>| {
         let img = &images[0];
-        let time = i as f32 * 0.15;
+        let frame_num = 36;
+        let time = i as f32 / frame_num as f32;
 
         let mut values = Vec::new();
         for uniform in effect.uniforms() {
