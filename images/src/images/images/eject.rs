@@ -1,4 +1,3 @@
-use std::f32::consts::PI;
 
 use image_derive::ImageOptions;
 
@@ -67,40 +66,36 @@ fn eject(images: Vec<InputImage>, texts: Vec<String>, options: Seed) -> Result<V
             let x = (((320 / 15) * i as i32) - 50) as f32;
             let y = ((f_h / 2) - 25) as f32;
 
-            let rotations = 45.0;
-            let rotation = (360.0 * rotations / 15.0) * i as f32;
-            let angle = -rotation * (PI / 180.0);
+            let rotations = 3.0;
+            let rotation = (360.0 * rotations / 17.0) * i as f32;
 
             let origin_x = (x + 25f32) as f32;
             let origin_y = (y + 25f32) as f32;
 
             canvas.save();
             canvas.translate(Point::new(origin_x, origin_y));
-            canvas.rotate(angle, None);
+            canvas.rotate(-rotation, None);
             canvas.translate(Point::new(-origin_x, -origin_y));
             canvas.draw_image(&base, Point::new(x, y), None);
             canvas.restore();
         }
 
         if i > 17 {
-            if i <= 27 {
-                let letters = ((((t.len() / 10) * (i - 17)) + 1) as f32).ceil() as usize;
-                let to_draw = to_write.as_str().slice(..letters + 1);
-
-                let text = Text2Image::from_text(
-                    to_draw.to_string(),
-                    17.0,
-                    text_params!(paint = new_paint(color_from_hex_code("#ffffff"))),
-                );
-                text.draw_on_canvas(canvas, ((55 - to_draw.len()) as i32, 75));
+            let to_draw = if i <= 27 {
+                let letters = ((t.len() as f32 / 10.0) * (i - 17) as f32).ceil() as usize;
+                to_write.as_str().slice(..letters.min(t.len())).to_string()
             } else {
-                Text2Image::from_text(
-                    &to_write,
-                    17.0,
-                    text_params!(paint = new_paint(color_from_hex_code("#ffffff"))),
-                )
-                .draw_on_canvas(canvas, ((55 - to_write.len()) as i32, 75));
-            }
+                to_write.clone()
+            };
+
+            let text = Text2Image::from_text(
+                &to_draw,
+                17.0,
+                text_params!(paint = new_paint(color_from_hex_code("#ffffff"))),
+            );
+            let text_width = text.longest_line();
+            let x = ((320.0 - text_width) / 2.0) as i32;
+            text.draw_on_canvas(canvas, (x, 75));
         }
 
         Ok(surface.image_snapshot())
